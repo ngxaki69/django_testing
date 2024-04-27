@@ -1,52 +1,50 @@
-from django.urls import reverse
 from http import HTTPStatus
 import pytest
 from pytest_django.asserts import assertRedirects
 
 
+URL_NEWS_HOME = pytest.lazy_fixture('url_home')
+URL_NEWS_DETAIL = pytest.lazy_fixture('url_detail')
+URL_NEWS_LOGIN = pytest.lazy_fixture('url_login')
+URL_NEWS_LOGOUT = pytest.lazy_fixture('url_logout')
+URL_NEWS_SIGNUP = pytest.lazy_fixture('url_signup')
+URL_NEWS_EDIT = pytest.lazy_fixture('url_edit')
+URL_NEWS_DELETE = pytest.lazy_fixture('url_delete')
+
+
+ANONYMOUS_CLIENT = pytest.lazy_fixture('anonymous_client')
+USER_CLIENT = pytest.lazy_fixture('not_author_client')
+AUTHOR_CLIENT = pytest.lazy_fixture('author_client')
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    'name , args',  # Кортеж, содержащий и имя, и аргументы.
+    ('url', 'parametrized_client', 'expected_status'),
     (
-        ('news:home', None),
-        ('news:detail', pytest.lazy_fixture('new_id')),
-        ('users:login', None),
-        ('users:logout', None),
-        ('users:signup', None),
-    ),
+        (URL_NEWS_HOME, ANONYMOUS_CLIENT, HTTPStatus.OK),
+        (URL_NEWS_DETAIL, ANONYMOUS_CLIENT, HTTPStatus.OK),
+        (URL_NEWS_SIGNUP, ANONYMOUS_CLIENT, HTTPStatus.OK),
+        (URL_NEWS_LOGIN, ANONYMOUS_CLIENT, HTTPStatus.OK),
+        (URL_NEWS_LOGOUT, ANONYMOUS_CLIENT, HTTPStatus.OK),
+        (URL_NEWS_DELETE, AUTHOR_CLIENT, HTTPStatus.OK),
+        (URL_NEWS_EDIT, AUTHOR_CLIENT, HTTPStatus.OK),
+        (URL_NEWS_DELETE, USER_CLIENT, HTTPStatus.NOT_FOUND),
+        (URL_NEWS_EDIT, USER_CLIENT, HTTPStatus.NOT_FOUND),
+    )
 )
-def test_pages_availability_for_anonymous_user(client, name, args):
-    url = reverse(name, args=args)
-    response = client.get(url)
-    assert response.status_code == HTTPStatus.OK
-
-
-@pytest.mark.parametrize(
-    'parametrized_client, expected_status',
-    (
-        (pytest.lazy_fixture('not_author_client'), HTTPStatus.NOT_FOUND),
-        (pytest.lazy_fixture('author_client'), HTTPStatus.OK)
-    ),
-)
-@pytest.mark.parametrize(
-    'name',
-    ('news:edit', 'news:delete'),
-)
-def test_pages_availability_for_different_users(
-        parametrized_client, name, comment, expected_status
-):
-    url = reverse(name, args=(comment.id,))
+def test_pages(url, parametrized_client, expected_status):
     response = parametrized_client.get(url)
     assert response.status_code == expected_status
 
 
 @pytest.mark.parametrize(
-    'name',
-    ('news:edit', 'news:delete')
+    ('login_url', 'url', 'parametrized_client'),
+    (
+        (URL_NEWS_LOGIN, URL_NEWS_DELETE, ANONYMOUS_CLIENT),
+        (URL_NEWS_LOGIN, URL_NEWS_EDIT, ANONYMOUS_CLIENT),
+    )
 )
-def test_redirects(client, name, comment):
-    login_url = reverse('users:login')
-    url = reverse(name, args=(comment.id,))
+def test_redirects(login_url, url, parametrized_client):
     expected_url = f'{login_url}?next={url}'
-    response = client.get(url)
+    response = parametrized_client.get(url)
     assertRedirects(response, expected_url)

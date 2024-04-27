@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from django.test.client import Client
+from django.urls import reverse
 import pytest
 
 from news.models import Comment, News
@@ -20,6 +21,12 @@ def not_author(django_user_model):
 def author_client(author):
     client = Client()
     client.force_login(author)
+    return client
+
+
+@pytest.fixture
+def anonymous_client():
+    client = Client()
     return client
 
 
@@ -51,11 +58,6 @@ def news():
 
 
 @pytest.fixture
-def new_id(new):
-    return (new.pk,)
-
-
-@pytest.fixture
 def comment(author, new):
     comment = Comment.objects.create(
         news=new,
@@ -81,3 +83,38 @@ def form_data():
     return {
         'text': 'Новый текст'
     }
+
+
+@pytest.fixture
+def url_home():
+    return reverse('news:home')
+
+
+@pytest.fixture
+def url_detail(new):
+    return reverse('news:detail', args=[new.id])
+
+
+@pytest.fixture
+def url_login():
+    return reverse('users:login')
+
+
+@pytest.fixture
+def url_logout():
+    return reverse('users:logout')
+
+
+@pytest.fixture
+def url_signup():
+    return reverse('users:signup')
+
+
+@pytest.fixture
+def url_edit(comment):
+    return reverse('news:edit', args=[comment.id])
+
+
+@pytest.fixture
+def url_delete(comment):
+    return reverse('news:delete', args=[comment.id])

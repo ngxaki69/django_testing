@@ -13,12 +13,16 @@ from news.models import Comment
         (pytest.lazy_fixture('client'), 0),
     )
 )
-def test__users__create_comment(parametrized_client, comment_create, form_data,
-                                new):
+def test_users_create_comment(parametrized_client, comment_create, form_data,
+                              new):
     url = reverse('news:detail', args=(new.id,))
+    comments_count_old = Comment.objects.count()
     parametrized_client.post(url, data=form_data)
-    comments_count = Comment.objects.count()
-    assert comments_count == comment_create
+    comments_count_new = Comment.objects.count()
+    if comment_create == 1:
+        assert comments_count_old + 1 == comments_count_new
+    else:
+        assert comments_count_old == comments_count_new
 
 
 @pytest.mark.parametrize(
@@ -34,9 +38,10 @@ def test__users__edit_delete_comment(parametrized_client, comments_status,
     parametrized_client.post(url, data=form_data)
     comment.refresh_from_db()
     assert (comment.text == form_data['text']) == comments_status
+    comment_count_old = Comment.objects.count()
     parametrized_client.delete(reverse('news:delete', args=(comment.id,)))
-    comment_count = Comment.objects.count()
-    assert (comment_count == 0) == comments_status
+    comment_count_new = Comment.objects.count()
+    assert (comment_count_new + 1 == comment_count_old) == comments_status
 
 
 def test_user_cant_use_bad_words(author_client, new):
