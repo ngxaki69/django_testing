@@ -19,10 +19,7 @@ def test_users_create_comment(parametrized_client, comment_create, form_data,
     comments_count_old = Comment.objects.count()
     parametrized_client.post(url, data=form_data)
     comments_count_new = Comment.objects.count()
-    if comment_create == 1:
-        assert comments_count_old + 1 == comments_count_new
-    else:
-        assert comments_count_old == comments_count_new
+    assert comments_count_old + comment_create == comments_count_new
 
 
 @pytest.mark.parametrize(
@@ -32,12 +29,22 @@ def test_users_create_comment(parametrized_client, comment_create, form_data,
         (pytest.lazy_fixture('not_author_client'), False),
     )
 )
-def test__users__edit_delete_comment(parametrized_client, comments_status,
-                                     form_data, new, comment):
+def test_users_edit_comment(parametrized_client, comments_status,
+                            form_data, comment):
     url = reverse('news:edit', args=(comment.id,))
     parametrized_client.post(url, data=form_data)
     comment.refresh_from_db()
     assert (comment.text == form_data['text']) == comments_status
+
+
+@pytest.mark.parametrize(
+    'parametrized_client, comments_status',
+    (
+        (pytest.lazy_fixture('author_client'), True),
+        (pytest.lazy_fixture('not_author_client'), False),
+    )
+)
+def test__users_delete_comment(parametrized_client, comments_status, comment):
     comment_count_old = Comment.objects.count()
     parametrized_client.delete(reverse('news:delete', args=(comment.id,)))
     comment_count_new = Comment.objects.count()
